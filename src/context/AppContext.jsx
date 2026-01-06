@@ -50,6 +50,7 @@ export const AppProvider = ({ children }) => {
             isValidated: false,
         };
     });
+    const [focusMode, setFocusMode] = useState(false);
 
     // Session Management & Fetch
     useEffect(() => {
