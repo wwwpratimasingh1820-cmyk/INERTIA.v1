@@ -39,11 +39,13 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/project/:id" element={<Project />} />
-          <Route path="/settings" element={<Settings />} />
+        <Route element={<Layout />}>
           <Route path="/invite" element={<Join />} />
+          <Route element={<PrivateRoute><Outlet /></PrivateRoute>}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/project/:id" element={<Project />} />
+            <Route path="/settings" element={<Settings />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

@@ -31,7 +31,10 @@ export default function Login() {
             });
 
             if (authError) throw authError;
-            navigate("/dashboard");
+
+            const redirectParams = new URLSearchParams(window.location.search);
+            const redirectUrl = redirectParams.get("redirect");
+            navigate(redirectUrl || "/dashboard");
         } catch (err) {
             setError(err.message);
         } finally {
