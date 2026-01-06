@@ -40,7 +40,7 @@ export const AppProvider = ({ children }) => {
     });
 
     const [aiConfig, setAiConfig] = useState(() => {
-        const stored = localStorage.getItem("inertia_ai_config") || localStorage.getItem("planzao_ai_config");
+        const stored = localStorage.getItem("inertia_ai_config");
         return stored ? JSON.parse(stored) : {
             apiKey: "",
             provider: "gemini",
@@ -101,14 +101,22 @@ export const AppProvider = ({ children }) => {
 
             if (pError) throw pError;
 
-            // 2. Map DB projects into our state format
-            const mapped = pData.map(p => ({
-                id: p.id,
-                name: p.name,
-                type: p.type,
-                admin_id: p.admin_id,
-                createdAt: p.created_at,
-                ...p.data
+            // 2. Map DB projects into our state format and fetch members
+            const mapped = await Promise.all(pData.map(async (p) => {
+                const { data: mData } = await supabase
+                    .from('members')
+                    .select('*')
+                    .eq('project_id', p.id);
+
+                return {
+                    id: p.id,
+                    name: p.name,
+                    type: p.type,
+                    admin_id: p.admin_id,
+                    createdAt: p.created_at,
+                    members: mData || [],
+                    ...p.data
+                };
             }));
 
             setProjects(mapped);

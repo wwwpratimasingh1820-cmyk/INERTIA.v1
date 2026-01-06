@@ -335,7 +335,7 @@ export default function Settings() {
                                     We do not have access to your key. If you expose it from your own device or browser, Inertia is not responsible.
                                 </p>
                                 <p className="text-[10px] text-zinc-500 italic">
-                                    Inertia uses client-side AES-256 encryption. Planzo does not manage or recover API keys.
+                                    Inertia uses client-side AES-256 encryption. Inertia does not manage or recover API keys.
                                     Users are responsible for their own key safety.
                                 </p>
                             </div>

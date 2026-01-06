@@ -27,7 +27,10 @@ export default function Project() {
     const [viewMode, setViewMode] = useState("all");
     const [showChat, setShowChat] = useState(true);
 
-    const userInProject = project?.members?.find(m => m.id === userId);
+    const members = project?.members || [];
+    const checkpoints = project?.checkpoints || [];
+
+    const userInProject = members.find(m => m.id === userId);
     const userRole = userInProject?.role || "member";
     const isAdmin = userRole === "admin";
     const isMember = userRole === "member";
@@ -70,7 +73,7 @@ export default function Project() {
         const name = window.prompt("Enter member name:");
         if (!name) return;
         const newMember = { id: generateId(), name, role: "member" };
-        updateProject(id, { members: [...project.members, newMember] });
+        updateProject(id, { members: [...members, newMember] });
     };
 
     const setSubmissionDate = () => {
@@ -98,26 +101,26 @@ export default function Project() {
     };
 
     // Filters & Calcs
-    const visibleCheckpoints = project.checkpoints.filter(cp => {
+    const visibleCheckpoints = checkpoints.filter(cp => {
         if (isMember && !isAdmin) return cp.assignedTo === userId; // Force personal for members
         if (viewMode === "personal") return cp.assignedTo === userId;
         return true;
     });
 
     const totalCost = calculateProjectTotal(visibleCheckpoints);
-    const totalDays = calculateProjectDays(project.checkpoints);
+    const totalDays = calculateProjectDays(checkpoints);
 
     const priorityCheckpointId = visibleCheckpoints.find(cp => !cp.completed)?.id;
     const progress = calculateProgress(visibleCheckpoints);
 
     // Group Costs Breakdown
-    const memberCosts = project.members.map(m => {
-        const checkpoints = project.checkpoints.filter(cp => cp.assignedTo === m.id);
+    const memberCosts = members.map(m => {
+        const mCheckpoints = checkpoints.filter(cp => cp.assignedTo === m.id);
         return {
             ...m,
-            cost: calculateProjectTotal(checkpoints),
-            days: calculateProjectDays(checkpoints),
-            progress: calculateProgress(checkpoints)
+            cost: calculateProjectTotal(mCheckpoints),
+            days: calculateProjectDays(mCheckpoints),
+            progress: calculateProgress(mCheckpoints)
         };
     });
 
@@ -143,7 +146,7 @@ export default function Project() {
         deleteProject(id);
     };
 
-    const focusedCheckpoint = project.checkpoints.find(cp => cp.isFocusing);
+    const focusedCheckpoint = checkpoints.find(cp => cp.isFocusing);
 
     return (
         <div className="flex flex-col lg:flex-row gap-8 animate-in fade-in duration-500 min-h-screen">
@@ -206,7 +209,7 @@ export default function Project() {
                                 placeholder="Project Name"
                             />
                             <div className="text-zinc-500 dark:text-zinc-400 mt-1">
-                                {project.checkpoints.length} Checkpoints • {isGroup ? "Group Project" : "Solo Project"} • <span className="capitalize font-bold text-zinc-900 dark:text-zinc-100">{userRole}</span>
+                                {checkpoints.length} Checkpoints • {isGroup ? "Group Project" : "Solo Project"} • <span className="capitalize font-bold text-zinc-900 dark:text-zinc-100">{userRole}</span>
                             </div>
                             <textarea
                                 defaultValue={project.description || ""}
@@ -281,7 +284,7 @@ export default function Project() {
                                 viewMode === "all" ? "bg-white dark:bg-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
                             )}
                         >
-                            Master View ({project.checkpoints.length})
+                            Master View ({checkpoints.length})
                         </button>
                         <button
                             onClick={() => setViewMode("personal")}
@@ -290,7 +293,7 @@ export default function Project() {
                                 viewMode === "personal" ? "bg-white dark:bg-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-900"
                             )}
                         >
-                            Personal Plan ({project.checkpoints.filter(c => c.assignedTo === userId).length})
+                            Personal Plan ({checkpoints.filter(c => c.assignedTo === userId).length})
                         </button>
                     </div>
                 )}
@@ -358,7 +361,7 @@ export default function Project() {
                                         checkpoint={{
                                             ...cp,
                                             groupProps: {
-                                                members: project.members,
+                                                members: members,
                                                 isProjectAdmin: isAdmin,
                                                 currentUserId: userId,
                                                 isObserver
@@ -391,7 +394,7 @@ export default function Project() {
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold flex items-center gap-2">
                                 <Users size={20} />
-                                Team Members ({project.members.length})
+                                Team Members ({members.length})
                             </h2>
                         </div>
 
@@ -423,7 +426,7 @@ export default function Project() {
 
                             {project.submissionRawDate && (
                                 <div className="space-y-4">
-                                    {project.members.map(m => {
+                                    {members.map(m => {
                                         const result = project.results?.[m.id];
                                         return (
                                             <Card key={m.id} className="bg-zinc-50 dark:bg-zinc-800/30">
