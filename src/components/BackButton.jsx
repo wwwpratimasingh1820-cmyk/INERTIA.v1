@@ -7,12 +7,12 @@ export default function BackButton() {
     // In a real app, we might check if can go back, 
     // but React Router's -1 is usually fine.
 
+    const { logout } = useApp();
+
     const handleBack = () => {
         if (window.location.pathname === "/dashboard") {
-            if (window.confirm("Are you sure you want to exit Inertia?")) {
-                // In a browser, we can't always close the window, 
-                // so we redirect to intro or logout as fallback
-                window.location.href = "/";
+            if (window.confirm("Are you sure you want to exit Inertia? Your session will be closed.")) {
+                logout();
             }
         } else {
             navigate(-1);

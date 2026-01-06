@@ -173,9 +173,19 @@ export const AppProvider = ({ children }) => {
 
                 if (pError) throw pError;
 
+                // 2. Create Admin Member in Supabase
+                const { error: mError } = await supabase
+                    .from('members')
+                    .insert({
+                        project_id: p.id,
+                        user_id: user.id,
+                        name: user.user_metadata?.full_name || "Admin",
+                        role: 'admin'
+                    });
+
                 if (mError) throw mError;
 
-                await fetchProjects(user.id); // Wait for fetch
+                await fetchProjects(user.id);
                 return p.id;
             } catch (err) {
                 alert("Failed to create group project: " + err.message);
@@ -266,14 +276,11 @@ export const AppProvider = ({ children }) => {
     };
 
     const deleteProject = async (id) => {
-        if (!window.confirm("Are you sure you want to delete this project?")) return;
-
         const project = [...personalProjects, ...projects].find(p => p.id === id);
         if (project?.type === "solo") {
             setPersonalProjects((prev) => prev.filter((p) => p.id !== id));
         } else if (supabase && user) {
             try {
-                // Delete memberships first due to potential RLS or just clean cleanup
                 await supabase.from('members').delete().eq('project_id', id);
                 await supabase.from('projects').delete().eq('id', id);
                 await fetchProjects(user.id);
@@ -390,6 +397,15 @@ export const AppProvider = ({ children }) => {
         }
     };
 
+    const logout = async () => {
+        if (supabase) {
+            await supabase.auth.signOut();
+            setProjects([]);
+        }
+        localStorage.clear();
+        window.location.href = "/";
+    };
+
     return (
         <AppContext.Provider
             value={{
@@ -411,6 +427,7 @@ export const AppProvider = ({ children }) => {
                 focusMode,
                 setFocusMode,
                 promoteToAdmin,
+                logout,
                 clearAllData,
             }}
         >

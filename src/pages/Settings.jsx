@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import Button from "../components/Button";
-import { Trash2, AlertTriangle, Moon, Sun, Sparkles, Eye, EyeOff, AlertCircle, Loader2, CheckCircle2, ChevronDown, Clock } from "lucide-react";
+import { Trash2, AlertTriangle, Moon, Sun, Sparkles, Eye, EyeOff, AlertCircle, Loader2, CheckCircle2, ChevronDown, Clock, LogOut } from "lucide-react";
 import { AI_PROVIDERS, sendAIMessage } from "../utils/aiProviders";
 import CryptoJS from "crypto-js";
 import clsx from "clsx";
@@ -9,7 +9,7 @@ import clsx from "clsx";
 const SECRET_SALT = "inertia_secure_salt_2026";
 
 export default function Settings() {
-    const { clearAllData, aiConfig, setAiConfig, user, projects } = useApp();
+    const { clearAllData, aiConfig, setAiConfig, user, projects, logout } = useApp();
     const [showKey, setShowKey] = useState(false);
 
     // Local state for the AI form
@@ -352,14 +352,20 @@ export default function Settings() {
                             <div>
                                 <h3 className="font-medium text-red-900 dark:text-red-200">Danger Zone</h3>
                                 <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                                    Permanently delete all projects and reset settings. This action cannot be undone.
+                                    Manage your account and data. These actions are permanent.
                                 </p>
                             </div>
                         </div>
-                        <Button variant="danger" onClick={clearAllData} className="w-full sm:w-auto">
-                            <Trash2 size={18} className="mr-2" />
-                            Clear All Data
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <Button variant="danger" onClick={clearAllData} className="flex-1">
+                                <Trash2 size={18} className="mr-2" />
+                                Clear All Data
+                            </Button>
+                            <Button variant="secondary" onClick={logout} className="flex-1 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
+                                <LogOut size={18} className="mr-2" />
+                                Log Out
+                            </Button>
+                        </div>
                     </div>
                 </section>
 
