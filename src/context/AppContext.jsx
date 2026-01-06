@@ -173,24 +173,31 @@ export const AppProvider = ({ children }) => {
 
                 if (pError) throw pError;
 
-                // 2. Create Admin Member in Supabase
-                const { error: mError } = await supabase
-                    .from('members')
-                    .insert({
-                        project_id: p.id,
-                        user_id: user.id,
-                        name: user.user_metadata?.full_name || "Admin",
-                        role: 'admin'
-                    });
-
                 if (mError) throw mError;
 
-                fetchProjects(user.id);
+                await fetchProjects(user.id); // Wait for fetch
                 return p.id;
             } catch (err) {
                 alert("Failed to create group project: " + err.message);
                 return null;
             }
+        }
+    };
+
+    const promoteToAdmin = async (projectId, targetUserId) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await supabase
+                .from('members')
+                .update({ role: 'admin' })
+                .eq('project_id', projectId)
+                .eq('user_id', targetUserId);
+
+            if (error) throw error;
+            await fetchProjects(user.id);
+        } catch (err) {
+            console.error("Promote Error:", err);
+            alert("Failed to promote user: " + err.message);
         }
     };
 
@@ -264,9 +271,15 @@ export const AppProvider = ({ children }) => {
         const project = [...personalProjects, ...projects].find(p => p.id === id);
         if (project?.type === "solo") {
             setPersonalProjects((prev) => prev.filter((p) => p.id !== id));
-        } else if (supabase) {
-            await supabase.from('projects').delete().eq('id', id);
-            fetchProjects(user.id);
+        } else if (supabase && user) {
+            try {
+                // Delete memberships first due to potential RLS or just clean cleanup
+                await supabase.from('members').delete().eq('project_id', id);
+                await supabase.from('projects').delete().eq('id', id);
+                await fetchProjects(user.id);
+            } catch (err) {
+                console.error("Delete Error:", err);
+            }
         }
     };
 
@@ -397,6 +410,7 @@ export const AppProvider = ({ children }) => {
                 deleteCheckpoint,
                 focusMode,
                 setFocusMode,
+                promoteToAdmin,
                 clearAllData,
             }}
         >

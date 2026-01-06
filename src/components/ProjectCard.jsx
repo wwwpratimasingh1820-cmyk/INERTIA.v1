@@ -2,14 +2,21 @@ import { useNavigate } from "react-router-dom";
 import Card from "./Card";
 import ProgressBar from "./ProgressBar";
 import { calculateProjectTotal, calculateProgress, formatCurrency } from "../utils/calculateTotal";
-import { ArrowRight, CheckCircle2, DollarSign } from "lucide-react";
+import { ArrowRight, CheckCircle2, DollarSign, Trash2 } from "lucide-react";
+import { useApp } from "../context/AppContext";
 
 export default function ProjectCard({ project }) {
     const navigate = useNavigate();
+    const { deleteProject } = useApp();
     const totalCost = calculateProjectTotal(project.checkpoints);
     const progress = calculateProgress(project.checkpoints);
     const checkpointCount = project.checkpoints?.length || 0;
     const completedCount = project.checkpoints?.filter(cp => cp.completed).length || 0;
+
+    const handleDelete = (e) => {
+        e.stopPropagation();
+        deleteProject(project.id);
+    };
 
     return (
         <Card onClick={() => navigate(`/project/${project.id}`)} className="group relative overflow-hidden">
@@ -23,8 +30,17 @@ export default function ProjectCard({ project }) {
                     </div>
                     <span className="text-sm text-zinc-500 dark:text-zinc-400">Created {new Date(project.createdAt).toLocaleDateString()}</span>
                 </div>
-                <div className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-full group-hover:bg-zinc-100 dark:group-hover:bg-zinc-700 transition-colors">
-                    <ArrowRight size={20} className="text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={handleDelete}
+                        className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-full transition-colors"
+                        title="Delete Project"
+                    >
+                        <Trash2 size={18} />
+                    </button>
+                    <div className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded-full group-hover:bg-zinc-100 dark:group-hover:bg-zinc-700 transition-colors">
+                        <ArrowRight size={20} className="text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors" />
+                    </div>
                 </div>
             </div>
 

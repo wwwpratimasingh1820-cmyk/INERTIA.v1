@@ -20,12 +20,12 @@ import clsx from "clsx";
 export default function Project() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { projects, userId, updateProject, deleteProject, addCheckpoint, updateCheckpoint, deleteCheckpoint } = useApp();
+    const { projects, userId, updateProject, deleteProject, addCheckpoint, updateCheckpoint, deleteCheckpoint, promoteToAdmin } = useApp();
 
     const project = projects.find((p) => p.id === id);
     const [name, setName] = useState(project ? project.name : "");
     const [viewMode, setViewMode] = useState("all");
-    const [showChat, setShowChat] = useState(true);
+    const [showChat, setShowChat] = useState(false); // Default to closed
 
     const members = project?.members || [];
     const checkpoints = project?.checkpoints || [];
@@ -236,7 +236,7 @@ export default function Project() {
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                                     </span>
-                                    Chat
+                                    Team Chat
                                 </Button>
                             )}
                             {isGroup && isAdmin && (
@@ -400,14 +400,30 @@ export default function Project() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                             {memberCosts.map(m => (
-                                <Card key={m.id} className="p-4 flex items-center justify-between">
-                                    <div>
-                                        <p className="font-semibold">{m.name}</p>
-                                        <p className="text-xs text-zinc-500 capitalize">{m.role}</p>
+                                <Card key={m.id} className="p-4 flex items-start justify-between gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="font-semibold truncate">{m.name}</p>
+                                            {m.role === "admin" && (
+                                                <span className="px-1.5 py-0.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[8px] font-bold rounded uppercase">Admin</span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-zinc-500 capitalize mb-2">{m.role}</p>
+
+                                        {isAdmin && m.id !== userId && m.role !== "admin" && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => promoteToAdmin(id, m.id)}
+                                                className="h-7 text-[10px] bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200"
+                                            >
+                                                Make Admin
+                                            </Button>
+                                        )}
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-medium">{formatCurrency(m.cost)}</p>
-                                        <p className="text-xs text-zinc-400">{m.days} days • {m.progress}% done</p>
+                                        <p className="font-medium text-sm">{formatCurrency(m.cost)}</p>
+                                        <p className="text-[10px] text-zinc-400">{m.days} days • {m.progress}% done</p>
                                     </div>
                                 </Card>
                             ))}
@@ -489,12 +505,42 @@ export default function Project() {
                 />
             </div>
 
-            {/* Cool & Cozy Chat Sidebar */}
-            {isGroup && showChat && (
-                <div className="lg:w-96 w-full lg:sticky lg:top-24 h-[600px] lg:h-[calc(100vh-8rem)] animate-in slide-in-from-right-4 duration-500">
-                    <Chat projectId={project.id} />
-                </div>
-            )}
+            {/* Slide-over Chat Drawer */}
+            <AnimatePresence>
+                {isGroup && showChat && (
+                    <>
+                        {/* Overlay */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowChat(false)}
+                            className="fixed inset-0 bg-zinc-950/40 backdrop-blur-sm z-[60]"
+                        />
+                        {/* Drawer */}
+                        <motion.div
+                            initial={{ x: "100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="fixed right-0 top-0 bottom-0 w-full sm:w-[400px] bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-800 shadow-2xl z-[70] flex flex-col"
+                        >
+                            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                                <h3 className="font-bold flex items-center gap-2">
+                                    <Users size={18} />
+                                    Project Chat
+                                </h3>
+                                <Button variant="ghost" size="icon" onClick={() => setShowChat(false)}>
+                                    <X size={20} />
+                                </Button>
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                                <Chat projectId={project.id} />
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

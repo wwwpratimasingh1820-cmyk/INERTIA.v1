@@ -209,11 +209,13 @@ export default function CheckpointItem({ checkpoint, onUpdate, onDelete, isPrior
                         <select
                             value={checkpoint.assignedTo || ""}
                             onChange={handleAssign}
-                            className="text-xs bg-transparent border-none p-0 text-zinc-500 focus:ring-0 cursor-pointer hover:text-zinc-900 dark:hover:text-white"
+                            className="text-xs bg-transparent border-none p-0 text-zinc-500 focus:ring-0 cursor-pointer hover:text-zinc-900 dark:hover:text-white [&>option]:bg-white dark:[&>option]:bg-zinc-900 [&>option]:text-zinc-900 dark:[&>option]:text-zinc-100"
                         >
                             <option value="">Unassigned</option>
                             {members.map(m => (
-                                <option key={m.id} value={m.id}>{m.name} {m.id === currentUserId ? "(You)" : ""}</option>
+                                <option key={m.id} value={m.id} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
+                                    {m.name} {m.id === currentUserId ? "(You)" : ""}
+                                </option>
                             ))}
                         </select>
                     </div>
