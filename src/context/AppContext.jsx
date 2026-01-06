@@ -151,7 +151,7 @@ export const AppProvider = ({ children }) => {
             type, // "solo" | "group"
             createdAt: new Date().toISOString(),
             members: [
-                { id: user?.id || userId, name: user?.user_metadata?.full_name || "Admin", role: "admin" }
+                { user_id: user?.id || userId, name: user?.user_metadata?.full_name || "Admin", role: "admin" }
             ],
             checkpoints: [],
             results: {},
