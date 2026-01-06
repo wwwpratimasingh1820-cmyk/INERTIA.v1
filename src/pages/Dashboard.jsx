@@ -32,9 +32,9 @@ export default function Dashboard() {
 
         if (!aiConfig.apiKey || !aiConfig.isValidated) {
             // Fallback: Just create a project with the intent as name
-            const id = addProject(intent.split("\n")[0].substring(0, 40), projectType);
+            const id = await addProject(intent.split("\n")[0].substring(0, 40), projectType);
             setIsModalOpen(false);
-            navigate(`/project/${id}`);
+            if (id) navigate(`/project/${id}`);
             return;
         }
 
@@ -192,11 +192,11 @@ Instructions:
                             <Button
                                 type="button"
                                 variant="secondary"
-                                onClick={() => {
-                                    const id = addProject(intent.split("\n")[0].substring(0, 40) || "New Project", projectType);
+                                onClick={async () => {
+                                    const id = await addProject(intent.split("\n")[0].substring(0, 40) || "New Project", projectType);
                                     setIsModalOpen(false);
                                     setIntent("");
-                                    navigate(`/project/${id}`);
+                                    if (id) navigate(`/project/${id}`);
                                 }}
                             >
                                 Create Manually

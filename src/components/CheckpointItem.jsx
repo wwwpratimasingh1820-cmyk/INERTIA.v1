@@ -80,7 +80,7 @@ export default function CheckpointItem({ checkpoint, onUpdate, onDelete, isPrior
 
     // props for group logic
     const { members = [], isProjectAdmin, currentUserId, isObserver } = checkpoint.groupProps || {};
-    const assignedMember = members.find(m => m.id === checkpoint.assignedTo);
+    const assignedMember = members.find(m => m.user_id === checkpoint.assignedTo);
 
     // Member only views their assigned checkpoints in "Personal View"
     // This component will be used in both Admin (all) and Member (filtered) views.
@@ -213,8 +213,8 @@ export default function CheckpointItem({ checkpoint, onUpdate, onDelete, isPrior
                         >
                             <option value="">Unassigned</option>
                             {members.map(m => (
-                                <option key={m.id} value={m.id} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-                                    {m.name} {m.id === currentUserId ? "(You)" : ""}
+                                <option key={m.user_id} value={m.user_id} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
+                                    {m.name} {m.user_id === currentUserId ? "(You)" : ""}
                                 </option>
                             ))}
                         </select>

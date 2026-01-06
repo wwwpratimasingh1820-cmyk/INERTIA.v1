@@ -11,7 +11,7 @@ import Button from "../components/Button";
 import Card from "../components/Card";
 import ProgressBar from "../components/ProgressBar";
 import { calculateProjectTotal, calculateProjectDays, calculateProgress, formatCurrency } from "../utils/calculateTotal";
-import { ArrowLeft, Plus, Trash2, DollarSign, CheckCircle2, UserPlus, Share2, Clipboard, Users, Calendar, User } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, DollarSign, CheckCircle2, UserPlus, Share2, Clipboard, Users, Calendar, User, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { compressToEncodedURIComponent } from "lz-string";
 import { generateId } from "../utils/generateId";
@@ -30,9 +30,9 @@ export default function Project() {
     const members = project?.members || [];
     const checkpoints = project?.checkpoints || [];
 
-    const userInProject = members.find(m => m.id === userId);
+    const userInProject = members.find(m => m.user_id === userId);
     const userRole = userInProject?.role || "member";
-    const isAdmin = userRole === "admin";
+    const isAdmin = userRole === "admin" || (project?.admin_id && project?.admin_id === userId);
     const isMember = userRole === "member";
     const isObserver = userRole === "observer";
     const isGroup = project?.type === "group";
@@ -115,12 +115,12 @@ export default function Project() {
 
     // Group Costs Breakdown
     const memberCosts = members.map(m => {
-        const mCheckpoints = checkpoints.filter(cp => cp.assignedTo === m.id);
+        const memberCheckpoints = checkpoints.filter(cp => cp.assignedTo === m.user_id);
         return {
             ...m,
-            cost: calculateProjectTotal(mCheckpoints),
-            days: calculateProjectDays(mCheckpoints),
-            progress: calculateProgress(mCheckpoints)
+            cost: calculateProjectTotal(memberCheckpoints),
+            days: calculateProjectDays(memberCheckpoints),
+            progress: calculateProgress(memberCheckpoints)
         };
     });
 
@@ -400,7 +400,7 @@ export default function Project() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                             {memberCosts.map(m => (
-                                <Card key={m.id} className="p-4 flex items-start justify-between gap-4">
+                                <Card key={m.user_id} className="p-4 flex items-start justify-between gap-4">
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <p className="font-semibold truncate">{m.name}</p>
@@ -410,11 +410,11 @@ export default function Project() {
                                         </div>
                                         <p className="text-xs text-zinc-500 capitalize mb-2">{m.role}</p>
 
-                                        {isAdmin && m.id !== userId && m.role !== "admin" && (
+                                        {isAdmin && m.user_id !== userId && m.role !== "admin" && (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => promoteToAdmin(id, m.id)}
+                                                onClick={() => promoteToAdmin(id, m.user_id)}
                                                 className="h-7 text-[10px] bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200"
                                             >
                                                 Make Admin
@@ -507,7 +507,7 @@ export default function Project() {
 
             {/* Slide-over Chat Drawer */}
             <AnimatePresence>
-                {isGroup && showChat && (
+                {isGroup && showChat && project && (
                     <>
                         {/* Overlay */}
                         <motion.div
