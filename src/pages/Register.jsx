@@ -8,7 +8,7 @@ import { LayoutGrid, Loader2, AlertCircle, Sparkles } from "lucide-react";
 export default function Register() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [name, setName] = useState("");
     const navigate = useNavigate();
@@ -25,12 +25,16 @@ export default function Register() {
         }
 
         try {
+            // Internally convert username to a fake email for Supabase Auth
+            const fakeEmail = `${username.trim().toLowerCase()}@inertia.local`;
+
             const { data, error: authError } = await supabase.auth.signUp({
-                email,
+                email: fakeEmail,
                 password,
                 options: {
                     data: {
                         full_name: name,
+                        username: username.trim().toLowerCase()
                     }
                 }
             });
@@ -73,12 +77,11 @@ export default function Register() {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">Email / Username</label>
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">Username</label>
                         <Input
-                            type="email"
-                            placeholder="name@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="unique_username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             required
                             className="bg-zinc-900/50 border-zinc-800 text-white h-12 rounded-xl"
                         />
@@ -105,6 +108,13 @@ export default function Register() {
                     <Button type="submit" disabled={loading} className="w-full h-12 bg-white text-zinc-950 hover:bg-zinc-200 rounded-xl font-bold">
                         {loading ? <Loader2 className="animate-spin" size={20} /> : "Create Account"}
                     </Button>
+
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-start gap-2">
+                        <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-zinc-400">
+                            <span className="text-amber-500 font-bold">WARNING:</span> Do not lose or share your password. We cannot recover it. We do not use real emails for your privacy.
+                        </p>
+                    </div>
                 </form>
 
                 <p className="text-center text-sm text-zinc-500">

@@ -8,7 +8,7 @@ import { LayoutGrid, Loader2, AlertCircle } from "lucide-react";
 export default function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const navigate = useNavigate();
 
@@ -24,8 +24,9 @@ export default function Login() {
         }
 
         try {
+            const fakeEmail = `${username.trim().toLowerCase()}@inertia.local`;
             const { error: authError } = await supabase.auth.signInWithPassword({
-                email,
+                email: fakeEmail,
                 password,
             });
 
@@ -53,12 +54,11 @@ export default function Login() {
 
                 <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">Email / Username</label>
+                        <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1">Username</label>
                         <Input
-                            type="email"
-                            placeholder="name@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="your_username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             required
                             className="bg-zinc-900/50 border-zinc-800 text-white h-12 rounded-xl"
                         />
@@ -88,6 +88,13 @@ export default function Login() {
                     <Button type="submit" disabled={loading} className="w-full h-12 bg-white text-zinc-950 hover:bg-zinc-200 rounded-xl font-bold">
                         {loading ? <Loader2 className="animate-spin" size={20} /> : "Sign In"}
                     </Button>
+
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-start gap-2 text-xs">
+                        <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                        <p className="text-[10px] text-zinc-400">
+                            Keep your password safe. It is your only way to access your account.
+                        </p>
+                    </div>
                 </form>
 
                 <p className="text-center text-sm text-zinc-500">
