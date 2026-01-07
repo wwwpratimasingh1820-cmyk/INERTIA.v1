@@ -9,8 +9,12 @@ import clsx from "clsx";
 const SECRET_SALT = "inertia_secure_salt_2026";
 
 export default function Settings() {
-    const { clearAllData, aiConfig, setAiConfig, user, projects, logout } = useApp();
-    const [showKey, setShowKey] = useState(false);
+    const { clearAllData, aiConfig, setAiConfig, user, projects, logout, updateProfile } = useApp();
+    const [showAIKey, setShowAIKey] = useState(false);
+    const [showRecoveryPass, setShowRecoveryPass] = useState(false);
+
+    const [newName, setNewName] = useState(user?.user_metadata?.full_name || "");
+    const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
 
     // Local state for the AI form
     const [localConfig, setLocalConfig] = useState(aiConfig);
@@ -145,6 +149,42 @@ export default function Settings() {
                             </div>
                         </div>
                     </div>
+
+                    <div className="p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-zinc-500">Full Name</label>
+                            <div className="flex gap-2">
+                                <input
+                                    value={newName}
+                                    onChange={(e) => setNewName(e.target.value)}
+                                    placeholder="Enter your name"
+                                    className="flex-1 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2 text-sm focus:ring-1 focus:ring-zinc-500 outline-none"
+                                />
+                                <Button
+                                    size="sm"
+                                    onClick={async () => {
+                                        setIsUpdatingProfile(true);
+                                        await updateProfile({ full_name: newName });
+                                        setIsUpdatingProfile(false);
+                                    }}
+                                    disabled={isUpdatingProfile || newName === user?.user_metadata?.full_name}
+                                >
+                                    {isUpdatingProfile ? <Loader2 size={16} className="animate-spin" /> : "Update Name"}
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold uppercase text-zinc-500">Username (Unique ID)</label>
+                            <input
+                                value={user?.user_metadata?.username || ""}
+                                readOnly
+                                disabled
+                                className="w-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2 text-sm text-zinc-500 cursor-not-allowed"
+                            />
+                            <p className="text-[10px] text-zinc-400">Username cannot be changed as it is your unique identifier across Inertia.</p>
+                        </div>
+                    </div>
                 </section>
 
                 {/* Security & Recovery */}
@@ -164,16 +204,16 @@ export default function Settings() {
                         <div className="flex items-center gap-2">
                             <div className="flex-1 relative">
                                 <input
-                                    type={showKey ? "text" : "password"}
+                                    type={showRecoveryPass ? "text" : "password"}
                                     readOnly
                                     value={localStorage.getItem("inertia_recovery_pass") || "••••••••"}
                                     className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-mono outline-none"
                                 />
                                 <button
-                                    onClick={() => setShowKey(!showKey)}
+                                    onClick={() => setShowRecoveryPass(!showRecoveryPass)}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                                 >
-                                    {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                                    {showRecoveryPass ? <EyeOff size={16} /> : <Eye size={16} />}
                                 </button>
                             </div>
                             <Button
@@ -233,7 +273,7 @@ export default function Settings() {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-zinc-500 mb-1.5">1. Provider API Key</label>
                                     <div className="relative">
                                         <input
-                                            type={showKey ? "text" : "password"}
+                                            type={showAIKey ? "text" : "password"}
                                             value={localConfig.apiKey}
                                             onChange={(e) => setLocalConfig({ ...localConfig, apiKey: e.target.value, isValidated: false })}
                                             className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-3 pr-10 py-3 text-sm focus:ring-1 focus:ring-zinc-500 outline-none"
@@ -241,10 +281,10 @@ export default function Settings() {
                                         />
                                         <button
                                             type="button"
-                                            onClick={() => setShowKey(!showKey)}
+                                            onClick={() => setShowAIKey(!showAIKey)}
                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
                                         >
-                                            {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            {showAIKey ? <EyeOff size={16} /> : <Eye size={16} />}
                                         </button>
                                     </div>
                                 </div>

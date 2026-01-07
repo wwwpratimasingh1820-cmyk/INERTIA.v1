@@ -70,6 +70,17 @@ export const AppProvider = ({ children }) => {
 
         getSession();
 
+        // 3. Real-time Subscriptions
+        const projectsSubscription = supabase
+            .channel('any')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+                if (user) fetchProjects(user.id);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () => {
+                if (user) fetchProjects(user.id);
+            })
+            .subscribe();
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
             if (session?.user) {
@@ -80,8 +91,34 @@ export const AppProvider = ({ children }) => {
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
-    }, []);
+        return () => {
+            subscription.unsubscribe();
+            supabase.removeChannel(projectsSubscription);
+        };
+    }, [user?.id]); // Re-subscribe if user changes
+
+    const updateProfile = async (updates) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await supabase.auth.updateUser({
+                data: updates
+            });
+            if (error) throw error;
+
+            // Also update members table names for this user across all projects
+            if (updates.full_name) {
+                await supabase
+                    .from('members')
+                    .update({ name: updates.full_name })
+                    .eq('user_id', user.id);
+            }
+
+            await fetchProjects(user.id);
+            alert("Profile updated successfully!");
+        } catch (err) {
+            alert("Update failed: " + err.message);
+        }
+    };
 
     const fetchProjects = async (uid) => {
         try {
@@ -427,6 +464,7 @@ export const AppProvider = ({ children }) => {
                 focusMode,
                 setFocusMode,
                 promoteToAdmin,
+                updateProfile,
                 logout,
                 clearAllData,
             }}

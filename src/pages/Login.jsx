@@ -95,11 +95,19 @@ export default function Login() {
                         {loading ? <Loader2 className="animate-spin" size={20} /> : "Sign In"}
                     </Button>
 
-                    <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl flex items-start gap-2 text-xs">
-                        <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-                        <p className="text-[10px] text-zinc-400">
-                            Keep your password safe. It is your only way to access your account.
-                        </p>
+                    <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl space-y-2">
+                        <div className="flex items-start gap-2 text-xs">
+                            <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-zinc-400">
+                                <span className="text-amber-400 font-bold uppercase">Note:</span> We use your <strong>unique username</strong> for login to protect your privacy. No real email is required.
+                            </p>
+                        </div>
+                        <div className="flex items-start gap-2 text-xs border-t border-amber-500/10 pt-2">
+                            <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-zinc-400">
+                                Keep your password safe. It is your only way to access your account.
+                            </p>
+                        </div>
                     </div>
                 </form>
 
