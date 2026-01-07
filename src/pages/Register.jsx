@@ -41,9 +41,15 @@ export default function Register() {
 
             if (authError) throw authError;
             if (data.user) {
-                // Redirect to login or auto-login
+                // Store password for recovery
+                localStorage.setItem("inertia_recovery_pass", password);
+
+                // Check for redirect
+                const redirectParams = new URLSearchParams(window.location.search);
+                const redirectUrl = redirectParams.get("redirect");
+
                 alert("Account created! You can now sign in.");
-                navigate("/login");
+                navigate(redirectUrl ? `/login?redirect=${encodeURIComponent(redirectUrl)}` : "/login");
             }
         } catch (err) {
             setError(err.message);

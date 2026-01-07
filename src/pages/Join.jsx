@@ -38,7 +38,7 @@ export default function Join() {
                     .single();
 
                 if (pError || !data) {
-                    setError("Project not found or invite expired.");
+                    setError("Project not found. This link might be invalid, or the project might be strictly private. If you're the creator, check your Supabase RLS policies.");
                 } else {
                     setProjectData({ ...data, invitedRole });
                 }

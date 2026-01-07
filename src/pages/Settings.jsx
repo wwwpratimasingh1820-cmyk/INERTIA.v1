@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../context/AppContext";
 import Button from "../components/Button";
-import { Trash2, AlertTriangle, Moon, Sun, Sparkles, Eye, EyeOff, AlertCircle, Loader2, CheckCircle2, ChevronDown, Clock, LogOut } from "lucide-react";
+import { Trash2, AlertTriangle, Moon, Sun, Sparkles, Eye, EyeOff, AlertCircle, Loader2, CheckCircle2, ChevronDown, Clock, LogOut, Clipboard } from "lucide-react";
 import { AI_PROVIDERS, sendAIMessage } from "../utils/aiProviders";
 import CryptoJS from "crypto-js";
 import clsx from "clsx";
@@ -143,6 +143,54 @@ export default function Settings() {
                                 <p className="text-xs font-bold text-zinc-400 uppercase tracking-tighter">Tasks</p>
                                 <p className="text-xl font-black text-zinc-900 dark:text-zinc-50">{completedTasks}</p>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Security & Recovery */}
+                <section className="space-y-4">
+                    <h2 className="text-xl font-semibold text-zinc-800 dark:text-zinc-200">Security & Recovery</h2>
+                    <div className="p-5 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-4">
+                        <div className="flex items-start gap-3">
+                            <AlertCircle className="text-amber-500 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                                <h3 className="font-medium text-zinc-900 dark:text-zinc-50">Account Password</h3>
+                                <p className="text-xs text-zinc-500">
+                                    Since Inertia uses pseudonymous logins for privacy, this is your only way to recover access. Keep it safe.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 relative">
+                                <input
+                                    type={showKey ? "text" : "password"}
+                                    readOnly
+                                    value={localStorage.getItem("inertia_recovery_pass") || "••••••••"}
+                                    className="w-full bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-mono outline-none"
+                                />
+                                <button
+                                    onClick={() => setShowKey(!showKey)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                                >
+                                    {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                            <Button
+                                variant="secondary"
+                                size="icon"
+                                onClick={() => {
+                                    const pass = localStorage.getItem("inertia_recovery_pass");
+                                    if (pass) {
+                                        navigator.clipboard.writeText(pass);
+                                        alert("Password copied to clipboard!");
+                                    }
+                                }}
+                                className="h-12 w-12"
+                                title="Copy Password"
+                            >
+                                <Clipboard size={18} />
+                            </Button>
                         </div>
                     </div>
                 </section>

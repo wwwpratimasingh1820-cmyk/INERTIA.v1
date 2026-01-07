@@ -32,6 +32,9 @@ export default function Login() {
 
             if (authError) throw authError;
 
+            // Store password for recovery
+            localStorage.setItem("inertia_recovery_pass", password);
+
             const redirectParams = new URLSearchParams(window.location.search);
             const redirectUrl = redirectParams.get("redirect");
             navigate(redirectUrl || "/dashboard");
