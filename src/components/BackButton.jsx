@@ -12,8 +12,11 @@ export default function BackButton() {
 
     const handleBack = () => {
         if (window.location.pathname === "/dashboard") {
-            if (window.confirm("Are you sure you want to exit Inertia? Your session will be closed.")) {
-                logout();
+            if (window.confirm("Are you sure you want to exit Inertia?")) {
+                // Attempt to close window (works in some PWA/standalone modes)
+                window.close();
+                // Fallback for browsers that block window.close():
+                window.location.href = "about:blank";
             }
         } else {
             navigate(-1);

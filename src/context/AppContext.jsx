@@ -288,19 +288,16 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    const updateProject = (id, updates) => {
+    const updateProject = async (id, updates) => {
         const project = [...personalProjects, ...projects].find(p => p.id === id);
-        const type = project?.type || "solo";
+        if (!project) return;
+
+        const type = project.type || "solo";
 
         const updater = (prev) =>
             prev.map((p) => {
                 if (p.id === id) {
-                    const updated = { ...p, ...updates };
-                    if (type === "group" && supabase) {
-                        const { id: _id, name: _name, type: _type, admin_id: _admin_id, created_at: _created_at, ...data } = updated;
-                        supabase.from('projects').update({ name: updated.name, data }).eq('id', id).then();
-                    }
-                    return updated;
+                    return { ...p, ...updates };
                 }
                 return p;
             });
@@ -309,6 +306,31 @@ export const AppProvider = ({ children }) => {
             setPersonalProjects(updater);
         } else {
             setProjects(updater);
+            if (supabase) {
+                try {
+                    // Precise update: only send the 'data' fields
+                    const updatedData = {
+                        checkpoints: updates.checkpoints || project.checkpoints || [],
+                        results: updates.results || project.results || {},
+                        messages: updates.messages || project.messages || [],
+                        submissionRawDate: updates.submissionRawDate !== undefined ? updates.submissionRawDate : (project.submissionRawDate || null)
+                    };
+
+                    const { error } = await supabase
+                        .from('projects')
+                        .update({
+                            name: updates.name || project.name,
+                            data: updatedData
+                        })
+                        .eq('id', id);
+
+                    if (error) throw error;
+                    // Realtime will trigger fetch, but let's be safe
+                    // await fetchProjects(user.id); 
+                } catch (err) {
+                    console.error("Update Project Error:", err);
+                }
+            }
         }
     };
 
@@ -327,7 +349,7 @@ export const AppProvider = ({ children }) => {
         }
     };
 
-    const addCheckpoint = (projectId, checkpoint) => {
+    const addCheckpoint = async (projectId, checkpoint) => {
         const newCp = {
             ...checkpoint,
             id: generateId(),
@@ -339,39 +361,47 @@ export const AppProvider = ({ children }) => {
             assignedTo: null
         };
 
-        // Fix: Auto-assign in solo/personal mode so it doesn't disappear if filter is active
         const project = [...personalProjects, ...projects].find(p => p.id === projectId);
-        if (project && project.type === "solo") {
+        if (!project) return;
+
+        if (project.type === "solo") {
             newCp.assignedTo = user?.id || userId;
-        }
+            setPersonalProjects(prev => prev.map(p =>
+                p.id === projectId ? { ...p, checkpoints: [...p.checkpoints, newCp] } : p
+            ));
+        } else if (supabase) {
+            try {
+                const updatedCheckpoints = [...project.checkpoints, newCp];
+                const { error } = await supabase
+                    .from('projects')
+                    .update({
+                        data: {
+                            ...project.data, // Preserve other data fields if any
+                            checkpoints: updatedCheckpoints,
+                            results: project.results || {},
+                            messages: project.messages || [],
+                            submissionRawDate: project.submissionRawDate || null
+                        }
+                    })
+                    .eq('id', projectId);
 
-        const updater = (prev) =>
-            prev.map((p) => {
-                if (p.id === projectId) {
-                    const updatedCheckpoints = [...p.checkpoints, newCp];
-
-                    // If group, sync to DB
-                    if (p.type === "group" && supabase) {
-                        supabase.from('projects').update({
-                            data: { ...p, checkpoints: updatedCheckpoints }
-                        }).eq('id', p.id).then();
-                    }
-
-                    return { ...p, checkpoints: updatedCheckpoints };
-                }
-                return p;
-            });
-
-        if (project?.type === "solo") {
-            setPersonalProjects(updater);
-        } else {
-            setProjects(updater);
+                if (error) throw error;
+                // Local state update
+                setProjects(prev => prev.map(p =>
+                    p.id === projectId ? { ...p, checkpoints: updatedCheckpoints } : p
+                ));
+            } catch (err) {
+                console.error("Add Checkpoint Error:", err);
+                alert("Failed to add task: " + err.message);
+            }
         }
     };
 
-    const updateCheckpoint = (projectId, checkpointId, updates) => {
+    const updateCheckpoint = async (projectId, checkpointId, updates) => {
         const project = [...personalProjects, ...projects].find(p => p.id === projectId);
-        const type = project?.type || "solo";
+        if (!project) return;
+
+        const type = project.type || "solo";
 
         const updater = (prev) =>
             prev.map((p) => {
@@ -379,13 +409,6 @@ export const AppProvider = ({ children }) => {
                     const updatedCheckpoints = p.checkpoints.map((cp) =>
                         cp.id === checkpointId ? { ...cp, ...updates } : cp
                     );
-
-                    if (type === "group" && supabase) {
-                        supabase.from('projects').update({
-                            data: { ...p, checkpoints: updatedCheckpoints }
-                        }).eq('id', projectId).then();
-                    }
-
                     return { ...p, checkpoints: updatedCheckpoints };
                 }
                 return p;
@@ -395,24 +418,42 @@ export const AppProvider = ({ children }) => {
             setPersonalProjects(updater);
         } else {
             setProjects(updater);
+            if (supabase) {
+                try {
+                    const updatedCheckpoints = project.checkpoints.map((cp) =>
+                        cp.id === checkpointId ? { ...cp, ...updates } : cp
+                    );
+
+                    const { error } = await supabase
+                        .from('projects')
+                        .update({
+                            data: {
+                                checkpoints: updatedCheckpoints,
+                                results: project.results || {},
+                                messages: project.messages || [],
+                                submissionRawDate: project.submissionRawDate || null
+                            }
+                        })
+                        .eq('id', projectId);
+
+                    if (error) throw error;
+                } catch (err) {
+                    console.error("Update Checkpoint Error:", err);
+                }
+            }
         }
     };
 
-    const deleteCheckpoint = (projectId, checkpointId) => {
+    const deleteCheckpoint = async (projectId, checkpointId) => {
         const project = [...personalProjects, ...projects].find(p => p.id === projectId);
-        const type = project?.type || "solo";
+        if (!project) return;
+
+        const type = project.type || "solo";
 
         const updater = (prev) =>
             prev.map((p) => {
                 if (p.id === projectId) {
                     const updatedCheckpoints = p.checkpoints.filter((cp) => cp.id !== checkpointId);
-
-                    if (type === "group" && supabase) {
-                        supabase.from('projects').update({
-                            data: { ...p, checkpoints: updatedCheckpoints }
-                        }).eq('id', projectId).then();
-                    }
-
                     return { ...p, checkpoints: updatedCheckpoints };
                 }
                 return p;
@@ -422,6 +463,26 @@ export const AppProvider = ({ children }) => {
             setPersonalProjects(updater);
         } else {
             setProjects(updater);
+            if (supabase) {
+                try {
+                    const updatedCheckpoints = project.checkpoints.filter((cp) => cp.id !== checkpointId);
+                    const { error } = await supabase
+                        .from('projects')
+                        .update({
+                            data: {
+                                checkpoints: updatedCheckpoints,
+                                results: project.results || {},
+                                messages: project.messages || [],
+                                submissionRawDate: project.submissionRawDate || null
+                            }
+                        })
+                        .eq('id', projectId);
+
+                    if (error) throw error;
+                } catch (err) {
+                    console.error("Delete Checkpoint Error:", err);
+                }
+            }
         }
     };
 
