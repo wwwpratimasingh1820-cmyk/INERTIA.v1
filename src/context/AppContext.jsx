@@ -73,13 +73,17 @@ export const AppProvider = ({ children }) => {
         // 3. Real-time Subscriptions
         const projectsSubscription = supabase
             .channel('any')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, (payload) => {
+                console.log("Realtime Update [Projects]:", payload);
                 if (user) fetchProjects(user.id);
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, () => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'members' }, (payload) => {
+                console.log("Realtime Update [Members]:", payload);
                 if (user) fetchProjects(user.id);
             })
-            .subscribe();
+            .subscribe((status) => {
+                console.log("Realtime Subscription Status:", status);
+            });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setUser(session?.user ?? null);
@@ -126,7 +130,8 @@ export const AppProvider = ({ children }) => {
             const { data: members, error: mError } = await supabase
                 .from('members')
                 .select('project_id')
-                .eq('user_id', uid);
+                .eq('user_id', uid)
+                .in('role', ['admin', 'member', 'observer']); // Exclude 'removed' and 'pending'
 
             if (mError) throw mError;
             const projectIds = members.map(m => m.project_id);
@@ -152,7 +157,8 @@ export const AppProvider = ({ children }) => {
                     admin_id: p.admin_id,
                     createdAt: p.created_at,
                     members: mData || [],
-                    ...p.data
+                    data: p.data || {}, // Keep raw data for safe preservation during updates
+                    ...(p.data || {})
                 };
             }));
 
@@ -242,9 +248,66 @@ export const AppProvider = ({ children }) => {
 
             if (error) throw error;
             await fetchProjects(user.id);
+            alert("User promoted to Admin successfully!");
         } catch (err) {
             console.error("Promote Error:", err);
-            alert("Failed to promote user: " + err.message);
+            alert("Permission denied or error: " + err.message);
+        }
+    };
+
+    const demoteFromAdmin = async (projectId, targetUserId) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await supabase
+                .from('members')
+                .update({ role: 'member' })
+                .eq('project_id', projectId)
+                .eq('user_id', targetUserId);
+
+            if (error) throw error;
+            await fetchProjects(user.id);
+            alert("Admin demoted to Member.");
+        } catch (err) {
+            console.error("Demote Error:", err);
+            alert("Failed to demote user: " + err.message);
+        }
+    };
+
+    const removeMember = async (projectId, targetUserId) => {
+        if (!supabase || !user) return;
+        if (!window.confirm("Are you sure? They will need admin approval to re-join.")) return;
+
+        try {
+            const { error } = await supabase
+                .from('members')
+                .update({ role: 'removed' })
+                .eq('project_id', projectId)
+                .eq('user_id', targetUserId);
+
+            if (error) throw error;
+            await fetchProjects(user.id);
+            alert("Member removed from group.");
+        } catch (err) {
+            console.error("Remove Error:", err);
+            alert("Failed to remove user: " + err.message);
+        }
+    };
+
+    const approveMember = async (projectId, targetUserId) => {
+        if (!supabase || !user) return;
+        try {
+            const { error } = await supabase
+                .from('members')
+                .update({ role: 'member' })
+                .eq('project_id', projectId)
+                .eq('user_id', targetUserId);
+
+            if (error) throw error;
+            await fetchProjects(user.id);
+            alert("Member approved!");
+        } catch (err) {
+            console.error("Approve Error:", err);
+            alert("Failed to approve member: " + err.message);
         }
     };
 
@@ -259,7 +322,7 @@ export const AppProvider = ({ children }) => {
         }
 
         try {
-            // Check if already a member
+            // Check for existing record (including removed users)
             const { data: existing } = await supabase
                 .from('members')
                 .select('*')
@@ -267,20 +330,37 @@ export const AppProvider = ({ children }) => {
                 .eq('user_id', user.id)
                 .single();
 
-            if (!existing) {
-                const role = projectData.invitedRole || "member";
-                const { error: mError } = await supabase
-                    .from('members')
-                    .insert({
-                        project_id: projectData.id,
-                        user_id: user.id,
-                        name: user.user_metadata?.full_name || "Member",
-                        role
-                    });
-                if (mError) throw mError;
+            if (existing) {
+                if (existing.role === 'removed') {
+                    // Update to pending for approval
+                    const { error: uError } = await supabase
+                        .from('members')
+                        .update({ role: 'pending' })
+                        .eq('id', existing.id);
+                    if (uError) throw uError;
+                    alert("Your request to re-join has been sent to the admins.");
+                    return "pending";
+                }
+                if (existing.role === 'pending') {
+                    alert("Your request is still pending admin approval.");
+                    return "pending";
+                }
+                return projectData.id; // Already a member/admin
             }
 
-            fetchProjects(user.id);
+            // First time joining
+            const role = projectData.invitedRole || "member";
+            const { error: mError } = await supabase
+                .from('members')
+                .insert({
+                    project_id: projectData.id,
+                    user_id: user.id,
+                    name: user.user_metadata?.full_name || "Member",
+                    role
+                });
+            if (mError) throw mError;
+
+            await fetchProjects(user.id);
             return projectData.id;
         } catch (err) {
             console.error("Join Error:", err);
@@ -320,7 +400,13 @@ export const AppProvider = ({ children }) => {
                         .from('projects')
                         .update({
                             name: updates.name || project.name,
-                            data: updatedData
+                            data: {
+                                ...(project.data || {}),
+                                checkpoints: updates.checkpoints || project.checkpoints || [],
+                                results: updates.results || project.results || {},
+                                messages: updates.messages || project.messages || [],
+                                submissionRawDate: updates.submissionRawDate !== undefined ? updates.submissionRawDate : (project.submissionRawDate || null)
+                            }
                         })
                         .eq('id', id);
 
@@ -329,6 +415,7 @@ export const AppProvider = ({ children }) => {
                     // await fetchProjects(user.id); 
                 } catch (err) {
                     console.error("Update Project Error:", err);
+                    alert("Sync Error: Failed to save project data. " + err.message);
                 }
             }
         }
@@ -376,11 +463,8 @@ export const AppProvider = ({ children }) => {
                     .from('projects')
                     .update({
                         data: {
-                            ...project.data, // Preserve other data fields if any
+                            ...(project.data || {}),
                             checkpoints: updatedCheckpoints,
-                            results: project.results || {},
-                            messages: project.messages || [],
-                            submissionRawDate: project.submissionRawDate || null
                         }
                     })
                     .eq('id', projectId);
@@ -428,10 +512,8 @@ export const AppProvider = ({ children }) => {
                         .from('projects')
                         .update({
                             data: {
+                                ...(project.data || {}),
                                 checkpoints: updatedCheckpoints,
-                                results: project.results || {},
-                                messages: project.messages || [],
-                                submissionRawDate: project.submissionRawDate || null
                             }
                         })
                         .eq('id', projectId);
@@ -439,6 +521,7 @@ export const AppProvider = ({ children }) => {
                     if (error) throw error;
                 } catch (err) {
                     console.error("Update Checkpoint Error:", err);
+                    alert("Sync Error: Could not save checkpoint. " + err.message);
                 }
             }
         }
@@ -470,10 +553,8 @@ export const AppProvider = ({ children }) => {
                         .from('projects')
                         .update({
                             data: {
+                                ...(project.data || {}),
                                 checkpoints: updatedCheckpoints,
-                                results: project.results || {},
-                                messages: project.messages || [],
-                                submissionRawDate: project.submissionRawDate || null
                             }
                         })
                         .eq('id', projectId);
@@ -525,6 +606,9 @@ export const AppProvider = ({ children }) => {
                 focusMode,
                 setFocusMode,
                 promoteToAdmin,
+                demoteFromAdmin,
+                removeMember,
+                approveMember,
                 updateProfile,
                 logout,
                 clearAllData,

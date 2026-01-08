@@ -15,6 +15,7 @@ export default function Join() {
     const [projectData, setProjectData] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [status, setStatus] = useState("idle"); // "idle" | "pending" | "success"
 
     useEffect(() => {
         if (!projectId) {
@@ -54,10 +55,37 @@ export default function Join() {
 
     const handleJoin = async () => {
         if (projectData && user) {
-            const id = await joinProject(projectData);
-            if (id) navigate(`/project/${id}`);
+            const result = await joinProject(projectData);
+            if (result === "pending") {
+                setStatus("pending");
+            } else if (result) {
+                navigate(`/project/${result}`);
+            }
         }
     };
+
+    if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+
+    if (status === "pending") {
+        return (
+            <div className="flex items-center justify-center min-h-screen p-4">
+                <Card className="max-w-md w-full p-8 text-center space-y-6 animate-in zoom-in duration-300">
+                    <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mx-auto">
+                        <UserPlus size={32} />
+                    </div>
+                    <div className="space-y-2">
+                        <h2 className="text-2xl font-bold">Request Sent</h2>
+                        <p className="text-zinc-500 dark:text-zinc-400">
+                            Because you were previously removed from <strong>{projectData.name}</strong>, an admin must approve your request to re-join.
+                        </p>
+                    </div>
+                    <Button className="w-full" onClick={() => navigate("/dashboard")}>
+                        Back to Dashboard
+                    </Button>
+                </Card>
+            </div>
+        );
+    }
 
     const goToAuth = (path) => {
         const currentUrl = window.location.pathname + window.location.search;
