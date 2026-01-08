@@ -423,7 +423,15 @@ export const AppProvider = ({ children }) => {
 
     const deleteProject = async (id) => {
         const project = [...personalProjects, ...projects].find(p => p.id === id);
-        if (project?.type === "solo") {
+        if (!project) return;
+
+        const confirmMessage = project.type === "group"
+            ? `Are you sure you want to delete the GROUP project "${project.name}"? This will remove access for ALL members.`
+            : `Are you sure you want to delete "${project.name}"? This cannot be undone.`;
+
+        if (!window.confirm(confirmMessage)) return;
+
+        if (project.type === "solo") {
             setPersonalProjects((prev) => prev.filter((p) => p.id !== id));
         } else if (supabase && user) {
             try {
